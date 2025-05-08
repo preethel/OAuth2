@@ -15,7 +15,6 @@ export class AuthService {
   }
 
   async handleLogin() {
-    debugger
     if (this.oauthService.hasValidAccessToken()) {
       const idToken = this.oauthService.getIdToken();
       await this.http.post('https://localhost:7240/api/auth/google-login', { idToken }).toPromise();

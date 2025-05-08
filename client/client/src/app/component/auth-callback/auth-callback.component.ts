@@ -17,7 +17,6 @@ export class AuthCallbackComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    debugger
     await this.oauthService.loadDiscoveryDocumentAndTryLogin();
 
     if (this.oauthService.hasValidAccessToken()) {
