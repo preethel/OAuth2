@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace ProjectX.Api.Controllers;
 
@@ -51,7 +52,8 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     public IActionResult Me()
     {
-        return Ok(new { user = User.Identity.Name });
+        var name = User.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
+        return Ok(new { user = name });
     }
 
     [HttpPost("logout")]

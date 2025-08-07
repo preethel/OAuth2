@@ -10,8 +10,9 @@ import { AuthService } from '../../auth.service';
 export class AuthorizedComponent implements OnInit {
   constructor(private authService: AuthService) {}
 
+  userName = '';
   ngOnInit() {
-    // Here you could call backend to fetch more user info if needed
+    this.userName = localStorage.getItem('userName')??''
   }
 
   logout() {
