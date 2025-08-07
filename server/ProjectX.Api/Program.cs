@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +13,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options =>
+.AddJwtBearer("Google", options =>
 {
     options.Authority = "https://accounts.google.com";
     options.TokenValidationParameters = new TokenValidationParameters
@@ -23,7 +24,20 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Authentication:Google:ClientId"],
         ValidateLifetime = true
     };
+})
+.AddJwtBearer("Internal", options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes("your_secret_keydsfsdfasdfasdfasdfasdfa_here"))
+    };
 });
+
 
 builder.Services.AddAuthorization();
 

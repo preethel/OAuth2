@@ -6,7 +6,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using System.Text.Json;
 
 namespace ProjectX.Api.Controllers;
 
@@ -21,38 +20,59 @@ public class AuthController : ControllerBase
         _config = config;
     }
 
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("google-login")]
-    public async Task<IActionResult> GoogleLogin([FromBody] TokenDto body)
+    public async Task<IActionResult> GoogleLogin()
     {
-        var validPayload = await GoogleJsonWebSignature.ValidateAsync(body.IdToken);
+        // 1. Token read from Authorization header
+        var authHeader = HttpContext.Request.Headers["Authorization"].FirstOrDefault();
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+        {
+            return Unauthorized(new { error = "Missing or invalid Authorization header" });
+        }
 
+        var idToken = authHeader.Substring("Bearer ".Length).Trim();
+
+        // 2. Validate Google ID Token
+        GoogleJsonWebSignature.Payload validPayload;
+        try
+        {
+            validPayload = await GoogleJsonWebSignature.ValidateAsync(idToken);
+        }
+        catch (InvalidJwtException ex)
+        {
+            return Unauthorized(new { error = "Invalid Google token", details = ex.Message });
+        }
+
+        // 3. Issue your own JWT token
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, validPayload.Subject),
-            new Claim(ClaimTypes.Name, validPayload.Name),
-            new Claim(ClaimTypes.Email, validPayload.Email),
-            new Claim("picture", validPayload.Picture),
-        };
+        new Claim(ClaimTypes.NameIdentifier, validPayload.Subject),
+        new Claim(ClaimTypes.Name, validPayload.Name),
+        new Claim(ClaimTypes.Email, validPayload.Email),
+        new Claim("picture", validPayload.Picture ?? "")
+    };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your_secret_keydsfsdfasdfasdfasdfasdfa_here"));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var token = new JwtSecurityToken(
+        var jwt = new JwtSecurityToken(
             issuer: "your_api_url",
             audience: "your_client_url",
             claims: claims,
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds);
 
-        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+        var tokenString = new JwtSecurityTokenHandler().WriteToken(jwt);
 
         return Ok(new { token = tokenString });
     }
-    [Authorize]
+
+    [Authorize(AuthenticationSchemes = "Internal")]
     [HttpGet("me")]
     public IActionResult Me()
     {
-        var name = User.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
+        var name = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
         return Ok(new { user = name });
     }
 

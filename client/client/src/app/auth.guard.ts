@@ -9,7 +9,7 @@ export class AuthGuard implements CanActivate {
   constructor(private http: HttpClient, private router: Router) { }
 
   canActivate(): Observable<boolean> {
-    const token = sessionStorage.getItem('id_token');
+    const token = localStorage.getItem('token');
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
 
     return this.http.get<any>('https://localhost:7240/api/auth/me', { headers }).pipe(
